@@ -1,0 +1,28 @@
+server:
+  port: 0
+fq:
+  api:
+    enabled: false
+    base-url: https://example.invalid
+    user-agent: fixture-agent
+    cookie: fixture-cookie
+    registration-key: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    device:
+      aid: "1967"
+      cdid: fixture-cdid
+      device-brand: fixture-brand
+      device-id: "1111111111111111002"
+      device-type: fixture-device
+      dpi: "320"
+      host-abi: arm64-v8a
+      install-id: "1111111111111111001"
+      resolution: 1920*1080
+      rom-version: fixture-release-keys
+      update-version-code: "68132"
+      version-code: "68132"
+      version-name: 6.8.1.32
+application:
+  unidbg:
+    dynarmic: false
+    verbose: false
+    async: false

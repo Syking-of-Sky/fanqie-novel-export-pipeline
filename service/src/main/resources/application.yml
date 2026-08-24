@@ -1,0 +1,45 @@
+server:
+  port: ${SERVER_PORT:9999}
+  address: ${SERVER_ADDRESS:127.0.0.1}
+
+application:
+  unidbg:
+    dynarmic: ${UNIDBG_DYNARMIC:false}
+    verbose: ${UNIDBG_VERBOSE:false}
+    async: ${UNIDBG_ASYNC:false}
+
+fq:
+  api:
+    # Disabled by default. Put real values in an ignored local profile or env vars.
+    enabled: ${FANQIE_API_ENABLED:false}
+    base-url: ${FANQIE_API_BASE_URL:https://example.invalid}
+    user-agent: ${FANQIE_USER_AGENT:}
+    cookie: ${FANQIE_COOKIE:}
+    registration-key: ${FANQIE_REGISTRATION_KEY:}
+    device:
+      aid: ${FANQIE_AID:1967}
+      cdid: ${FANQIE_CDID:}
+      device-brand: ${FANQIE_DEVICE_BRAND:}
+      device-id: ${FANQIE_DEVICE_ID:}
+      device-type: ${FANQIE_DEVICE_TYPE:}
+      dpi: ${FANQIE_DPI:}
+      host-abi: ${FANQIE_HOST_ABI:}
+      install-id: ${FANQIE_INSTALL_ID:}
+      resolution: ${FANQIE_RESOLUTION:}
+      rom-version: ${FANQIE_ROM_VERSION:}
+      update-version-code: ${FANQIE_UPDATE_VERSION_CODE:68132}
+      version-code: ${FANQIE_VERSION_CODE:68132}
+      version-name: ${FANQIE_VERSION_NAME:6.8.1.32}
+
+spring:
+  application:
+    name: fanqie-export-reader-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  task:
+    execution:
+      pool:
+        allow-core-thread-timeout: true
+        core-size: ${SPRING_TASK_CORE_SIZE:4}
+        keep-alive: 60s
+        max-size: ${SPRING_TASK_MAX_SIZE:8}

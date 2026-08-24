@@ -1,0 +1,7 @@
+{
+  "book": "<numeric-book-id-or-share-url>",
+  "alias": "<optional display alias>",
+  "app_api": "http://127.0.0.1:9999",
+  "output_root": "outputs",
+  "cache_root": "cache"
+}

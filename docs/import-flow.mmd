@@ -1,0 +1,19 @@
+flowchart LR
+    share[畅读分享链接] --> resolve[解析官方 book ID]
+    resolve --> catalog[目录接口获取 474 章]
+    catalog --> cache[读取已有 240 章缓存]
+    cache --> batch[批量接口获取缺失正文]
+    batch --> fallback{范围请求可用?}
+    fallback -- 否 --> ids[显式 chapterIds fallback]
+    fallback -- 是 --> clean[清理 XHTML]
+    ids --> clean
+    clean --> dedup[按 item ID 去重并校验标题]
+    dedup --> files[生成 TXT 与 EPUB]
+    files --> crc[CRC、mimetype、章节数校验]
+    crc --> manifest[生成导入清单]
+    manifest --> server[服务器 import-with-manifest.js]
+    server --> check{书名已存在?}
+    check -- 否 --> insert[新增 EPUB 记录]
+    check -- 是 --> skip[删除暂存副本并跳过]
+    insert --> verify[数据库核验：474 章 / 总数 418]
+    skip --> verify

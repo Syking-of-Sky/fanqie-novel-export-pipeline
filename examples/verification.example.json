@@ -1,0 +1,9 @@
+{
+  "book_id": "<numeric-book-id>",
+  "title": "Example title",
+  "catalog_count": 0,
+  "exported_count": 0,
+  "unique_chapter_ids": 0,
+  "txt": {"path": "<local path>", "bytes": 0, "sha256": "<sha256>"},
+  "epub": {"path": "<local path>", "bytes": 0, "sha256": "<sha256>"}
+}

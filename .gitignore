@@ -1,0 +1,33 @@
+# Runtime outputs and resumable chapter cache
+outputs/
+cache/
+results/
+**/results/
+
+# Local deployment configuration and credentials
+.env
+.env.*
+!.env.example
+**/application-local.yml
+**/application-local.yaml
+
+# Java/Maven build products
+service/target/
+*.class
+*.log
+
+# Python bytecode and test caches
+**/__pycache__/
+*.py[cod]
+
+# Runtime binaries that must be prepared separately
+service/src/main/resources/com/dragon/read/oversea/gp/apk/
+service/src/main/resources/com/dragon/read/oversea/gp/lib/
+service/src/main/resources/com/dragon/read/oversea/gp/rootfs/
+service/src/main/resources/com/dragon/read/oversea/gp/other/
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,4 @@
+# Local development overrides. Keep real credentials in an ignored file such as
+# application-local.yml and activate it with SPRING_PROFILES_ACTIVE=dev,local.
+server:
+  port: ${SERVER_PORT:9999}

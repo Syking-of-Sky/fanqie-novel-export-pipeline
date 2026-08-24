@@ -1,0 +1,31 @@
+server:
+  port: 9999
+  address: 127.0.0.1
+
+application:
+  unidbg:
+    dynarmic: false
+    verbose: false
+    async: false
+
+fq:
+  api:
+    enabled: false
+    base-url: https://<upstream-api-host>
+    user-agent: <client-user-agent>
+    cookie: <session-cookie>
+    registration-key: <32-hex-character-deployment-key>
+    device:
+      aid: "1967"
+      cdid: <uuid>
+      device-brand: <brand>
+      device-id: <numeric-device-id>
+      device-type: <model>
+      dpi: "640"
+      host-abi: arm64-v8a
+      install-id: <numeric-install-id>
+      resolution: 3200*1440
+      rom-version: <rom-version>
+      update-version-code: "68132"
+      version-code: "68132"
+      version-name: 6.8.1.32
