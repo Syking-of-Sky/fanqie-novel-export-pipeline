@@ -1,6 +1,6 @@
 # Fanqie Novel Export Pipeline
 
-中英双语入口：[`README.zh-CN.md`](README.zh-CN.md) · [`README.en.md`](README.en.md) · [`CHANGELOG.md`](CHANGELOG.md) · 正式流程报告：[`docs/2026-08-24_fanqie-export-pipeline-report.md`](docs/2026-08-24_fanqie-export-pipeline-report.md) · Release 草稿：[`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) / [`docs/release-draft.en.md`](docs/release-draft.en.md)
+中英双语入口：[`README.zh-CN.md`](README.zh-CN.md) · [`README.en.md`](README.en.md) · [`CHANGELOG.md`](CHANGELOG.md) · 正式流程报告：[`docs/2026-08-24_fanqie-export-pipeline-report.md`](docs/2026-08-24_fanqie-export-pipeline-report.md) · Release 草稿：[`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) / [`docs/release-draft.en.md`](docs/release-draft.en.md) · Branding：[`docs/public-branding.md`](docs/public-branding.md)
 
 这是一个可复现的“分享链接 → 目录 → 本地批量正文 → 去重 → TXT/EPUB → 校验 → manifest → 服务器幂等导入”流程。仓库只放流程代码、接口契约、配置模板和脱敏示例；小说正文、章节缓存、服务器数据库、Cookie、设备标识、注册密钥及 APK/SO 运行时资源均不入库。
 
@@ -109,6 +109,7 @@ python scripts/validate_epub.py outputs/<channel>/<title>/<title>.epub
 - `docs/`：数据流、架构、双语故障排查和正式流程报告。
 - `examples/`：不含真实 ID/凭据的请求和 manifest 示例。
 - `docs/release-draft.*.md`：可直接复制到 GitHub Release 的中英草稿说明。
+- `docs/public-branding.md`：公开仓库 description、topics、social preview 文案建议。
 
 ## Configuration boundary
 

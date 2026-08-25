@@ -8,20 +8,42 @@ Copy this into a GitHub Release body, or save version-specific notes under `docs
 
 Recommended first formal public tag: `v0.1.0`.
 
-## Release body template
+## Release body
 
 ```md
+This is the first public release of `fanqie-novel-export-pipeline`.
+
+It turns a field-tested workflow into a reproducible, auditable, rerunnable toolchain: start from a share URL or `book_id`, read the catalog, fetch chapters in batches, resume safely from cache, deduplicate by chapter, write TXT/EPUB, validate the output, and hand `manifest.json` plus EPUBs to an idempotent server-side import step.
+
+## Why this release matters
+
+- It promotes a previously manual, experience-driven flow into a documented end-to-end repository.
+- It locks down the fragile parts of the pipeline: resumable caching, deduplication, EPUB validation, and manifest-based import.
+- It ships with bilingual README files, architecture notes, troubleshooting guides, and a formal workflow report for reuse or adaptation.
+
 ## Included in this release
 
-- A reproducible `share URL / book_id -> catalog -> batch chapters -> resumable cache -> dedup -> TXT/EPUB -> validation -> manifest -> idempotent server import` workflow.
 - Python utilities for export, EPUB writing, EPUB validation, manifest generation, and upload/import examples.
 - A Spring Boot + Unidbg local service sample with configuration templates.
-- Bilingual READMEs, architecture notes, troubleshooting guides, and the formal workflow report.
+- Mermaid flow and sequence diagrams for public repository presentation.
+- Bilingual documentation: README, architecture notes, troubleshooting guides, and the formal workflow report.
 
 ## Repository boundary
 
 - Includes workflow code, configuration templates, interface contracts, and sanitized examples only.
 - Excludes novel content, chapter caches, server databases, cookies, device identifiers, registration keys, SSH details, and APK/SO/rootfs runtime assets.
+
+## Who this is for
+
+- Anyone who wants a reproducible export workflow instead of a one-off script.
+- Anyone who needs TXT/EPUB output plus a clean import handoff.
+- Anyone separating local signing, chapter retrieval, and server-side import responsibilities.
+
+## Known limitations
+
+- The Java service still requires external Unidbg runtime assets that are intentionally not shipped here.
+- Upstream calls may hit `429` or `ILLEGAL_ACCESS`; reuse cache and back off serially.
+- Opaque short links must be resolved to a canonical `book_id` outside this repository.
 
 ## Quick start
 
@@ -36,26 +58,4 @@ python scripts/export_fanqie_reader.py '<book-id-or-share-url>' \
 
 python scripts/make_manifest.py outputs/<channel>/<title> --channel '<channel>'
 python scripts/validate_epub.py outputs/<channel>/<title>/<title>.epub
-```
-
-## Validation coverage
-
-- Python scripts pass `python3 -m py_compile scripts/*.py service/tools/*.py`
-- EPUB fixture validation passes
-- Manifest fixture generation passes
-- Numeric-ID and opaque-shortlink edge cases are documented
-
-## Known limitations
-
-- The Java service still requires external Unidbg runtime assets that are intentionally not shipped here.
-- Upstream calls may hit `429` or `ILLEGAL_ACCESS`; reuse cache and back off serially.
-- Opaque short links must be resolved to a canonical `book_id` outside this repository.
-
-## Release checklist
-
-- [ ] `git status --ignored` shows only expected ignored directories
-- [ ] No `outputs/`, `cache/`, `results/`, or `service/target/` artifacts are tracked
-- [ ] No real cookies, device identifiers, registration keys, or absolute paths are present
-- [ ] README / bilingual docs / report links render correctly
-- [ ] Key commands reproduce from a clean environment
 ```
