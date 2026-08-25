@@ -8,6 +8,7 @@ This project follows a simple Keep a Changelog-style format for workflow and doc
 
 - Reproducible export pipeline from share URL or numeric `book_id` to TXT/EPUB output.
 - Resumable per-chapter cache with range-first batch fetching and `chapterIds` fallback.
+- Official cover fetch, local cover artifact output, and EPUB cover embedding with verification metadata.
 - Built-in EPUB writer, EPUB validator, manifest generator, and upload/import shell example.
 - Spring Boot + Unidbg local service sample with sanitized configuration templates.
 - Bilingual README files, architecture notes, troubleshooting guides, and the formal workflow report.

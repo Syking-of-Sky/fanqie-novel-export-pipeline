@@ -13,17 +13,17 @@ Recommended first formal public tag: `v0.1.0`.
 ```md
 This is the first public release of `fanqie-novel-export-pipeline`.
 
-It turns a field-tested workflow into a reproducible, auditable, rerunnable toolchain: start from a share URL or `book_id`, read the catalog, fetch chapters in batches, resume safely from cache, deduplicate by chapter, write TXT/EPUB, validate the output, and hand `manifest.json` plus EPUBs to an idempotent server-side import step.
+It turns a field-tested workflow into a reproducible, auditable, rerunnable toolchain: start from a share URL or `book_id`, read the catalog, fetch chapters in batches, resume safely from cache, deduplicate by chapter, fetch the official cover, write TXT/EPUB, validate the output, and hand `manifest.json` plus EPUBs to an idempotent server-side import step.
 
 ## Why this release matters
 
 - It promotes a previously manual, experience-driven flow into a documented end-to-end repository.
-- It locks down the fragile parts of the pipeline: resumable caching, deduplication, EPUB validation, and manifest-based import.
+- It locks down the fragile parts of the pipeline: resumable caching, deduplication, official cover backfill, EPUB validation, and manifest-based import.
 - It ships with bilingual README files, architecture notes, troubleshooting guides, and a formal workflow report for reuse or adaptation.
 
 ## Included in this release
 
-- Python utilities for export, EPUB writing, EPUB validation, manifest generation, and upload/import examples.
+- Python utilities for export, official cover fetching, EPUB writing, EPUB validation, manifest generation, and upload/import examples.
 - A Spring Boot + Unidbg local service sample with configuration templates.
 - Mermaid flow and sequence diagrams for public repository presentation.
 - Bilingual documentation: README, architecture notes, troubleshooting guides, and the formal workflow report.
@@ -36,13 +36,14 @@ It turns a field-tested workflow into a reproducible, auditable, rerunnable tool
 ## Who this is for
 
 - Anyone who wants a reproducible export workflow instead of a one-off script.
-- Anyone who needs TXT/EPUB output plus a clean import handoff.
+- Anyone who needs TXT/EPUB output, cover backfill, and a clean import handoff.
 - Anyone separating local signing, chapter retrieval, and server-side import responsibilities.
 
 ## Known limitations
 
 - The Java service still requires external Unidbg runtime assets that are intentionally not shipped here.
 - Upstream calls may hit `429` or `ILLEGAL_ACCESS`; reuse cache and back off serially.
+- If catalog metadata does not return `coverUrl`/`thumbUrl`, the export requires explicit `--skip-cover` to continue without a cover.
 - Opaque short links must be resolved to a canonical `book_id` outside this repository.
 
 ## Quick start

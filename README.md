@@ -2,7 +2,7 @@
 
 中英双语入口：[`README.zh-CN.md`](README.zh-CN.md) · [`README.en.md`](README.en.md) · [`CHANGELOG.md`](CHANGELOG.md) · 正式流程报告：[`docs/2026-08-24_fanqie-export-pipeline-report.md`](docs/2026-08-24_fanqie-export-pipeline-report.md) · Release 草稿：[`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) / [`docs/release-draft.en.md`](docs/release-draft.en.md) · Branding：[`docs/public-branding.md`](docs/public-branding.md)
 
-这是一个可复现的“分享链接 → 目录 → 本地批量正文 → 去重 → TXT/EPUB → 校验 → manifest → 服务器幂等导入”流程。仓库只放流程代码、接口契约、配置模板和脱敏示例；小说正文、章节缓存、服务器数据库、Cookie、设备标识、注册密钥及 APK/SO 运行时资源均不入库。
+这是一个可复现的“分享链接 → 目录 → 本地批量正文 → 去重 → 官方封面 → TXT/EPUB → 校验 → manifest → 服务器幂等导入”流程。仓库只放流程代码、接口契约、配置模板和脱敏示例；小说正文、章节缓存、服务器数据库、Cookie、设备标识、注册密钥及 APK/SO 运行时资源均不入库。
 
 ## Pipeline at a glance
 
@@ -29,6 +29,7 @@ flowchart LR
   subgraph Build[Normalization and export]
     clean[Normalize XHTML and text]:::proc
     dedup[Deduplicate by item_id<br/>and verify title]:::check
+    cover[Fetch official cover<br/>and verify image type]:::proc
     export[Write TXT and EPUB 3]:::ship
     verify[Validate CRC, mimetype,<br/>container, chapter count]:::check
   end
@@ -42,7 +43,7 @@ flowchart LR
   share --> resolve --> catalog --> cache --> batch --> fallback
   fallback -- yes --> clean
   fallback -- no --> ids --> clean
-  clean --> dedup --> export --> verify --> manifest --> import --> shelf
+  clean --> dedup --> cover --> export --> verify --> manifest --> import --> shelf
 ```
 
 ## Import handshake
@@ -68,6 +69,8 @@ sequenceDiagram
       P->>C: Atomic cache write
     end
   end
+  P->>J: Read official cover URL from catalog metadata
+  P->>P: Fetch cover, verify JPEG/PNG, embed in EPUB
   P->>P: Normalize + deduplicate + build TXT/EPUB
   P->>P: Validate EPUB and emit manifest.json
   U->>S: Upload EPUB + manifest
@@ -90,10 +93,15 @@ python3 -m venv .venv && . .venv/bin/activate
 python -m pip install requests
 
 # 1) Start the local Java service separately (see service/README.md).
-# 2) Export by numeric ID or share URL; cache/output paths are ignored by Git.
+# 2) Export by numeric ID or share URL; official cover is fetched by default.
 python scripts/export_fanqie_reader.py '<book-id-or-share-url>' \
   --app-api http://127.0.0.1:9999 \
   --output-root outputs --cache-root cache
+
+# Optional: skip cover fetching only when you explicitly do not want it.
+python scripts/export_fanqie_reader.py '<book-id-or-share-url>' \
+  --app-api http://127.0.0.1:9999 \
+  --output-root outputs --cache-root cache --skip-cover
 
 # 3) Build an import manifest for one output directory.
 python scripts/make_manifest.py outputs/<channel>/<title> --channel '<channel>'
@@ -104,7 +112,7 @@ python scripts/validate_epub.py outputs/<channel>/<title>/<title>.epub
 
 ## Repository map
 
-- `scripts/`：导出、内置 EPUB writer、EPUB 校验、manifest 和上传示例。
+- `scripts/`：导出、官方封面抓取、内置 EPUB writer、EPUB 校验、manifest 和上传示例。
 - `service/`：Spring Boot + Unidbg 本地签名/章节服务；运行时二进制资源需自行准备。
 - `docs/`：数据流、架构、双语故障排查和正式流程报告。
 - `examples/`：不含真实 ID/凭据的请求和 manifest 示例。
@@ -128,14 +136,23 @@ rg -n -I -S 'install_id|device_id|cdid|Cookie|Bearer|Authorization|registration-
 - 章节请求按 30 章分组串行发送，优先范围请求，失败回退显式 ID。
 - 每个章节以 `<chapter-id>.json` 原子写入 cache，可中断后继续。
 - 去重键是目录 `item_id`；标题必须与目录归一化匹配；正文过短会失败而不会生成半成品。
+- 默认抓取目录返回的官方封面，只接受 JPEG/PNG，并把封面写入 EPUB 与 `verification.json`。
 - EPUB 校验 ZIP CRC、未压缩 `mimetype`、容器文件和章节数。
 - 服务导入按书名幂等：已存在的书应删除暂存副本并跳过，最终以数据库/书架状态核验。
+
+## Backfill covers
+
+- 如果服务器里已有无封面的书，重新运行导出即可；章节 cache 会复用，额外只会补抓官方封面。
+- 然后重新上传新的 EPUB 和对应 `manifest.json`，再走一次导入链路。
+- 最终以服务器书架/数据库状态确认封面是否出现；不要只看本地导出成功。
 
 ## Troubleshooting
 
 - `429 Too Many Requests`：等待退避，复用已有 cache；不要并行重试完整书籍。
+- `official cover URL not found`：目录元数据没有返回封面；如仅需正文可临时使用 `--skip-cover`。
 - `ILLEGAL_ACCESS`：检查设备配置、上游会话和请求频率；不要把错误响应当正文。
 - `empty response`：检查本地服务和运行时资源；只清理损坏批次的 cache。
+- `cover payload too small` / `unsupported JPEG/PNG`：通常拿到的是错误页或风控页，先退避后再重试。
 - `EPUB CRC/mimetype`：重新生成该 EPUB，确认未被传输工具改写。
 
 更多中文和英文细节见 [`README.zh-CN.md`](README.zh-CN.md) 与 [`README.en.md`](README.en.md)。版本变更记录见 [`CHANGELOG.md`](CHANGELOG.md)。发版时可直接参考 [`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) 或 [`docs/release-draft.en.md`](docs/release-draft.en.md)。

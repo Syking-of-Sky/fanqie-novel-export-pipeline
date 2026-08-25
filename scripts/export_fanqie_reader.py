@@ -26,6 +26,9 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_ROOT = ROOT / "outputs"
 DEFAULT_CACHE_ROOT = ROOT / "cache"
 DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; FanqieExportPipeline/1.0)"
+MIN_COVER_BYTES = 1024
+JPEG_SIGNATURE = b"\xff\xd8\xff"
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
 def sha256(path: Path) -> str:
@@ -131,6 +134,49 @@ def request_text(url: str, user_agent: str, attempts: int = 5) -> str:
     raise RuntimeError(f"request failed: {url}: {last_error}")
 
 
+def _pick_cover_url(*candidates: object) -> str:
+    for candidate in candidates:
+        if not isinstance(candidate, str):
+            continue
+        value = candidate.strip()
+        if value.startswith(("http://", "https://")):
+            return value
+    return ""
+
+
+def _detect_cover_type(payload: bytes, content_type: str | None, source_url: str) -> tuple[str, str]:
+    del content_type, source_url  # payload signature is authoritative here.
+    if payload.startswith(JPEG_SIGNATURE):
+        return "image/jpeg", "cover.jpg"
+    if payload.startswith(PNG_SIGNATURE):
+        return "image/png", "cover.png"
+    raise RuntimeError("official cover is not a supported JPEG/PNG image")
+
+
+def fetch_cover(url: str, user_agent: str, attempts: int = 5) -> tuple[bytes, str, str]:
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        response: requests.Response | None = None
+        try:
+            response = requests.get(url, headers={"User-Agent": user_agent}, timeout=25)
+            if response.status_code == 429:
+                raise RuntimeError("cover request hit 429 Too Many Requests")
+            response.raise_for_status()
+            payload = response.content
+            if len(payload) < MIN_COVER_BYTES:
+                raise RuntimeError(f"cover payload too small: {len(payload)} bytes")
+            media_type, cover_name = _detect_cover_type(payload, response.headers.get("Content-Type"), url)
+            return payload, media_type, cover_name
+        except Exception as exc:
+            last_error = exc
+        finally:
+            if response is not None:
+                response.close()
+        if attempt + 1 < attempts:
+            time.sleep(1.0 + attempt * 1.5)
+    raise RuntimeError(f"cover request failed: {url}: {last_error}")
+
+
 def parse_book(book_id: str, app_api_base: str, user_agent: str) -> tuple[dict, list[tuple[str, str]]]:
     response = requests.get(f"{app_api_base}/api/fqsearch/directory/{book_id}", timeout=60)
     response.raise_for_status()
@@ -171,6 +217,16 @@ def parse_book(book_id: str, app_api_base: str, user_agent: str) -> tuple[dict, 
         "creation_status": str(page.get("creationStatus") or ""),
         "last_chapter_title": entries[-1][1],
         "abstract": app_info.get("description") or page.get("abstract") or "",
+        "cover_url": _pick_cover_url(
+            app_info.get("coverUrl"),
+            app_info.get("cover_url"),
+            app_info.get("thumbUrl"),
+            app_info.get("thumb_url"),
+            page.get("coverUrl"),
+            page.get("cover_url"),
+            page.get("thumbUrl"),
+            page.get("thumb_url"),
+        ),
         "source": f"https://fanqienovel.com/page/{book_id}",
     }
     return metadata, entries
@@ -222,6 +278,7 @@ def export_book(
     output_root: Path,
     cache_root: Path,
     user_agent: str,
+    skip_cover: bool,
 ) -> dict:
     del workers  # retained for CLI compatibility; requests are intentionally serialized.
     metadata, entries = parse_book(book_id, app_api_base, user_agent)
@@ -280,18 +337,40 @@ def export_book(
     txt_path = folder / f"{safe_name(metadata['title'])}.txt"
     epub_path = folder / f"{safe_name(metadata['title'])}.epub"
     verification_path = folder / "verification.json"
+    cover_url = str(metadata.get("cover_url") or "")
+    cover_path: Path | None = None
+    cover_bytes: bytes | None = None
+    cover_media_type: str | None = None
+    cover_name: str | None = None
+
+    if not skip_cover:
+        if not cover_url:
+            raise RuntimeError("official cover URL not found; rerun with --skip-cover to export without cover")
+        cover_bytes, cover_media_type, cover_name = fetch_cover(cover_url, user_agent)
+        cover_path = folder / cover_name
+        cover_path.write_bytes(cover_bytes)
+
     with txt_path.open("w", encoding="utf-8", newline="\n") as output:
         output.write(f"《{metadata['title']}》\n")
         if requested_alias and normalize_title(requested_alias) != normalize_title(metadata["title"]):
             output.write(f"分享名：《{requested_alias}》\n")
         output.write(
             f"作者：{metadata['author']}\n官方分类：{metadata['category']}\n"
-            f"官方标签：{'、'.join(metadata['tags'])}\n书籍 ID：{book_id}\n\n"
+            f"官方标签：{'、'.join(metadata['tags'])}\n官方封面：{cover_url or '未获取'}\n书籍 ID：{book_id}\n\n"
         )
         for chapter in chapters:
             output.write(f"{chapter['title']}\n\n{chapter['content']}\n\n")
 
-    write_epub(epub_path, metadata["title"], metadata["author"], chapters, book_id)
+    write_epub(
+        epub_path,
+        metadata["title"],
+        metadata["author"],
+        chapters,
+        book_id,
+        cover_bytes=cover_bytes,
+        cover_media_type=cover_media_type,
+        cover_name=cover_name,
+    )
     validate_epub(epub_path, len(chapters))
     report = {
         **metadata,
@@ -301,6 +380,14 @@ def export_book(
         "unique_chapter_ids": len({chapter["id"] for chapter in chapters}),
         "content_chars": sum(len(chapter["content"]) for chapter in chapters),
         "errors": [],
+        "cover": {
+            "skipped": skip_cover,
+            "url": cover_url,
+            "path": str(cover_path) if cover_path else "",
+            "bytes": cover_path.stat().st_size if cover_path else 0,
+            "sha256": sha256(cover_path) if cover_path else "",
+            "media_type": cover_media_type or "",
+        },
         "txt": {"path": str(txt_path), "bytes": txt_path.stat().st_size, "sha256": sha256(txt_path)},
         "epub": {"path": str(epub_path), "bytes": epub_path.stat().st_size, "sha256": sha256(epub_path)},
     }
@@ -318,10 +405,11 @@ def main() -> None:
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--cache-root", type=Path, default=DEFAULT_CACHE_ROOT)
     parser.add_argument("--user-agent", default=os.getenv("FANQIE_PUBLIC_USER_AGENT", DEFAULT_USER_AGENT))
+    parser.add_argument("--skip-cover", action="store_true", help="export without fetching the official cover")
     args = parser.parse_args()
     export_book(
         extract_book_id(args.book), args.alias, max(1, min(args.workers, 8)), args.app_api.rstrip("/"),
-        args.output_root, args.cache_root, args.user_agent,
+        args.output_root, args.cache_root, args.user_agent, args.skip_cover,
     )
 
 

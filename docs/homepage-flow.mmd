@@ -20,6 +20,7 @@ flowchart LR
     subgraph Build[Normalization and export]
         clean[Normalize XHTML and text]:::proc
         dedup[Deduplicate by item_id<br/>and verify title]:::check
+        cover[Fetch official cover<br/>and verify image type]:::proc
         export[Write TXT and EPUB 3]:::ship
         verify[Validate CRC, mimetype,<br/>container, chapter count]:::check
     end
@@ -33,4 +34,4 @@ flowchart LR
     share --> resolve --> catalog --> cache --> batch --> fallback
     fallback -- yes --> clean
     fallback -- no --> ids --> clean
-    clean --> dedup --> export --> verify --> manifest --> import --> shelf
+    clean --> dedup --> cover --> export --> verify --> manifest --> import --> shelf

@@ -2,7 +2,7 @@
 
 ## 项目用途
 
-本项目把一次已验证的小说整理流程做成可复现工具链：输入数字 `book_id` 或分享链接，读取本地 Java 服务暴露的目录，按批次获取章节，按章节 ID 去重，清理正文，输出 TXT/EPUB，生成校验报告和服务器导入清单。
+本项目把一次已验证的小说整理流程做成可复现工具链：输入数字 `book_id` 或分享链接，读取本地 Java 服务暴露的目录，按批次获取章节，按章节 ID 去重，清理正文，补抓官方封面，输出 TXT/EPUB，生成校验报告和服务器导入清单。
 
 正式流程报告见 `docs/2026-08-24_fanqie-export-pipeline-report.md`。
 
@@ -29,10 +29,11 @@ python -m pip install requests
 3. **批量读取正文**：每 30 章优先请求 `chapterRange`；范围失败时使用同一批次的 `chapterIds`。
 4. **断点续传**：成功章节写入 `cache/app/<book_id>/<item_id>.json`，临时文件原子替换；再次运行只补缺失或不合格章节。
 5. **清理与去重**：去 HTML/XHTML 标签、实体、尾注和异常字符；以 `item_id` 去重并核验标题，避免重复章节混入导出。
-6. **导出**：生成带书籍元数据的 TXT 和一个章节一个 XHTML 的 EPUB 3。
-7. **验证**：执行 CRC、`mimetype`、容器文件和章节数检查，并在 `verification.json` 记录 SHA-256。
-8. **导入**：生成 `manifest.json`，与 EPUB 放在同一暂存目录，通过服务器导入脚本按标题幂等处理。
-9. **最终核验**：以服务器数据库/书架的最终书名、章节数和总书数为准，不以 `scp` 成功或脚本中间日志为准。
+6. **补抓官方封面**：优先使用目录/页面元数据中的 `coverUrl`/`thumbUrl`，仅接受 JPEG/PNG，并把封面写入导出目录与 EPUB。
+7. **导出**：生成带书籍元数据的 TXT 和一个章节一个 XHTML 的 EPUB 3。
+8. **验证**：执行 CRC、`mimetype`、容器文件和章节数检查，并在 `verification.json` 记录 SHA-256 与封面信息。
+9. **导入**：生成 `manifest.json`，与 EPUB 放在同一暂存目录，通过服务器导入脚本按标题幂等处理。
+10. **最终核验**：以服务器数据库/书架的最终书名、章节数、总书数和封面状态为准，不以 `scp` 成功或脚本中间日志为准。
 
 ## 使用命令
 
@@ -41,11 +42,16 @@ python scripts/export_fanqie_reader.py '<book-id-or-share-url>' \
   --app-api "${FANQIE_APP_API:-http://127.0.0.1:9999}" \
   --output-root outputs --cache-root cache
 
+# 只在明确不需要封面时使用
+python scripts/export_fanqie_reader.py '<book-id-or-share-url>' \
+  --app-api "${FANQIE_APP_API:-http://127.0.0.1:9999}" \
+  --output-root outputs --cache-root cache --skip-cover
+
 python scripts/make_manifest.py outputs/<频道>/<书名> --channel '<频道>'
 python scripts/validate_epub.py outputs/<频道>/<书名>/<书名>.epub
 ```
 
-`--workers` 只为兼容旧命令保留；当前流程刻意串行，避免触发上游频控。
+`--workers` 只为兼容旧命令保留；当前流程刻意串行，避免触发上游频控。`--skip-cover` 仅在明确不需要封面时使用。
 
 ## Java 服务
 
@@ -72,13 +78,22 @@ export SPRING_PROFILES_ACTIVE=dev,local
 }
 ```
 
-服务器导入约定：manifest 与 EPUB 同目录；按 `title` 幂等去重；已存在的书删除暂存副本并跳过；导入后查询最终数据库/书架状态。
+服务器导入约定：manifest 与 EPUB 同目录；按 `title` 幂等去重；已存在的书删除暂存副本并跳过；导入后查询最终数据库/书架状态，并确认封面已落到最终书架。
+
+## 给已有无封面书补封面
+
+- 重新运行同一本书的导出命令即可；已有 `cache/app/<book_id>/` 会复用，不需要重拉全部章节。
+- 新版导出会额外抓取官方封面，把封面文件、带封面的 EPUB 和更新后的 `verification.json` 一起写到输出目录。
+- 重新上传 EPUB 与 `manifest.json` 后，再执行一次服务器导入。
+- 最终以服务器书架/数据库中的封面状态为准，不以本地存在 `cover.jpg` 或 `cover.png` 为准。
 
 ## 限流和错误
 
 - **429**：等待 `Retry-After` 或指数退避，复用 cache，不重复下载整本书。
+- **找不到官方封面 URL**：说明目录/页面元数据没有返回 `coverUrl`/`thumbUrl`；如果只是临时导正文，可加 `--skip-cover`。
 - **ILLEGAL_ACCESS**：通常是设备风控或请求频率问题；降低频率、检查部署配置。
 - **空响应**：确认本地服务健康、运行时资源完整，再只重试缺失批次。
+- **封面过小或格式不对**：通常拿到的是错误页、风控页或占位资源；先退避，再重试该书。
 - **EPUB 校验失败**：删除该 EPUB 后重生成，检查上传过程是否压缩/改写 ZIP。
 
 补充故障排查见 `docs/troubleshooting.zh-CN.md`，英文版见 `docs/troubleshooting.en.md`。

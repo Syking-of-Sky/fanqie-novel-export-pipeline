@@ -18,6 +18,8 @@ sequenceDiagram
             P->>C: Atomic cache write
         end
     end
+    P->>J: Read official cover URL from catalog metadata
+    P->>P: Fetch cover, verify JPEG/PNG, embed in EPUB
     P->>P: Normalize + deduplicate + build TXT/EPUB
     P->>P: Validate EPUB and emit manifest.json
     U->>S: Upload EPUB + manifest

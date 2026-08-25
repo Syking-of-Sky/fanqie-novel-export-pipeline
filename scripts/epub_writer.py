@@ -27,6 +27,9 @@ def write_epub(
     author: str,
     chapters: Iterable[Mapping[str, object]],
     book_id: str,
+    cover_bytes: bytes | None = None,
+    cover_media_type: str | None = None,
+    cover_name: str | None = None,
 ) -> Path:
     """Write a deterministic EPUB with one XHTML document per chapter."""
     chapter_rows = list(chapters)
@@ -36,6 +39,24 @@ def write_epub(
     files: dict[str, bytes] = {}
     manifest: list[str] = []
     spine: list[str] = []
+    cover_meta = ""
+
+    if cover_bytes and cover_media_type and cover_name:
+        cover_href = f"images/{cover_name}"
+        files[cover_href] = cover_bytes
+        files["cover.xhtml"] = f"""<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="zh-CN">
+<head><meta charset="utf-8"/><title>{_xml(title)}</title></head>
+<body><section epub:type="cover"><img src="{_xml(cover_href)}" alt="{_xml(title)} cover" style="max-width:100%;height:auto;"/></section></body>
+</html>
+""".encode("utf-8")
+        manifest.append(
+            f'<item id="cover-image" href="{cover_href}" media-type="{cover_media_type}" properties="cover-image"/>'
+        )
+        manifest.append('<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>')
+        spine.append('<itemref idref="cover"/>')
+        cover_meta = '\n    <meta name="cover" content="cover-image"/>'
 
     for index, chapter in enumerate(chapter_rows, 1):
         item_id = f"chapter-{index:05d}"
@@ -59,7 +80,7 @@ def write_epub(
     <dc:title>{_xml(title)}</dc:title>
     <dc:creator>{_xml(author)}</dc:creator>
     <dc:language>zh-CN</dc:language>
-    <meta property="dcterms:modified">{modified}</meta>
+    <meta property="dcterms:modified">{modified}</meta>{cover_meta}
   </metadata>
   <manifest>
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
