@@ -6,7 +6,7 @@ This repository turns a verified workflow into a reproducible toolchain: accept 
 
 The formal release report lives in `docs/2026-08-24_fanqie-export-pipeline-report.md`.
 
-For a homepage-friendly diagram view, use the Mermaid sections in `README.md`. The source files live in `docs/homepage-flow.mmd` and `docs/homepage-sequence.mmd`. For GitHub Releases, start from `docs/release-draft.en.md`.
+For a homepage-friendly diagram view, use the Mermaid sections in `README.md`. The source files live in `docs/homepage-flow.mmd` and `docs/homepage-sequence.mmd`. For GitHub Releases, start from `docs/release-draft.en.md`. Track version history in `CHANGELOG.md`.
 
 This is a **workflow repository, not a content mirror**. It intentionally excludes novels, chapter caches, server databases, cookies, device IDs, session UUIDs, registration keys, SSH details, and Unidbg APK/SO/rootfs assets.
 
@@ -85,6 +85,7 @@ See `docs/troubleshooting.en.md` for the expanded troubleshooting table.
 
 - Use the Mermaid sections in the root `README.md` for the public repository landing page.
 - Reuse `docs/release-draft.en.md` for release text; the Chinese companion lives at `docs/release-draft.zh-CN.md`.
+- Use `v0.1.0` as the first formal public tag for the current reproducible workflow baseline.
 
 ## Security and privacy
 

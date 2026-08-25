@@ -1,6 +1,6 @@
 # Fanqie Novel Export Pipeline
 
-中英双语入口：[`README.zh-CN.md`](README.zh-CN.md) · [`README.en.md`](README.en.md) · 正式流程报告：[`docs/2026-08-24_fanqie-export-pipeline-report.md`](docs/2026-08-24_fanqie-export-pipeline-report.md) · Release 草稿：[`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) / [`docs/release-draft.en.md`](docs/release-draft.en.md)
+中英双语入口：[`README.zh-CN.md`](README.zh-CN.md) · [`README.en.md`](README.en.md) · [`CHANGELOG.md`](CHANGELOG.md) · 正式流程报告：[`docs/2026-08-24_fanqie-export-pipeline-report.md`](docs/2026-08-24_fanqie-export-pipeline-report.md) · Release 草稿：[`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) / [`docs/release-draft.en.md`](docs/release-draft.en.md)
 
 这是一个可复现的“分享链接 → 目录 → 本地批量正文 → 去重 → TXT/EPUB → 校验 → manifest → 服务器幂等导入”流程。仓库只放流程代码、接口契约、配置模板和脱敏示例；小说正文、章节缓存、服务器数据库、Cookie、设备标识、注册密钥及 APK/SO 运行时资源均不入库。
 
@@ -137,4 +137,4 @@ rg -n -I -S 'install_id|device_id|cdid|Cookie|Bearer|Authorization|registration-
 - `empty response`：检查本地服务和运行时资源；只清理损坏批次的 cache。
 - `EPUB CRC/mimetype`：重新生成该 EPUB，确认未被传输工具改写。
 
-更多中文和英文细节见 [`README.zh-CN.md`](README.zh-CN.md) 与 [`README.en.md`](README.en.md)。发版时可直接参考 [`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) 或 [`docs/release-draft.en.md`](docs/release-draft.en.md)。
+更多中文和英文细节见 [`README.zh-CN.md`](README.zh-CN.md) 与 [`README.en.md`](README.en.md)。版本变更记录见 [`CHANGELOG.md`](CHANGELOG.md)。发版时可直接参考 [`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) 或 [`docs/release-draft.en.md`](docs/release-draft.en.md)。

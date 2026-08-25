@@ -6,6 +6,8 @@ Copy this into a GitHub Release body, or save version-specific notes under `docs
 
 `v0.1.0 - Fanqie export/import pipeline`
 
+Recommended first formal public tag: `v0.1.0`.
+
 ## Release body template
 
 ```md

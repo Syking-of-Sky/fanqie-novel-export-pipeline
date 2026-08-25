@@ -6,6 +6,8 @@
 
 `v0.1.0 - Fanqie export/import pipeline`
 
+推荐把当前公开基线打成首个正式 tag：`v0.1.0`。
+
 ## 发布说明模板
 
 ```md
