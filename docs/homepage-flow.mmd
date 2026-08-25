@@ -1,0 +1,36 @@
+flowchart LR
+    classDef src fill:#e8f1ff,stroke:#4c7ff0,color:#16325c
+    classDef proc fill:#eefbf3,stroke:#2f9e5b,color:#154b2f
+    classDef check fill:#fff6dd,stroke:#d9a404,color:#5c4500
+    classDef ship fill:#f5ecff,stroke:#8a4bdb,color:#47216e
+
+    subgraph Input[Input and resolution]
+        share[Share URL or numeric book ID]:::src
+        resolve[Resolve canonical book ID]:::proc
+    end
+
+    subgraph Fetch[Catalog and chapter fetch]
+        catalog[Local catalog API]:::proc
+        cache[Resumable per-chapter cache]:::proc
+        batch[Batch chapter request]:::proc
+        fallback{Range works?}:::check
+        ids[Fallback to chapterIds]:::proc
+    end
+
+    subgraph Build[Normalization and export]
+        clean[Normalize XHTML and text]:::proc
+        dedup[Deduplicate by item_id<br/>and verify title]:::check
+        export[Write TXT and EPUB 3]:::ship
+        verify[Validate CRC, mimetype,<br/>container, chapter count]:::check
+    end
+
+    subgraph Ship[Server import]
+        manifest[Generate manifest.json]:::ship
+        import[Idempotent import job]:::ship
+        shelf[Verify final bookshelf state]:::check
+    end
+
+    share --> resolve --> catalog --> cache --> batch --> fallback
+    fallback -- yes --> clean
+    fallback -- no --> ids --> clean
+    clean --> dedup --> export --> verify --> manifest --> import --> shelf

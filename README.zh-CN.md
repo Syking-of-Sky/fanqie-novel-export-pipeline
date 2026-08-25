@@ -6,6 +6,8 @@
 
 正式流程报告见 `docs/2026-08-24_fanqie-export-pipeline-report.md`。
 
+首页展示用流程图和时序图见 `README.md`，对应 Mermaid 源文件在 `docs/homepage-flow.mmd` 与 `docs/homepage-sequence.mmd`。如果要直接写 GitHub Release，可先复制 `docs/release-draft.zh-CN.md`。
+
 仓库是**流程仓库，不是内容仓库**。不会提交任何整本小说、章节 JSON 缓存、服务器数据库、Cookie、设备 ID、会话 UUID、注册密钥、SSH 信息或 APK/SO/rootfs 运行时资源。
 
 ## 前置依赖
@@ -80,6 +82,11 @@ export SPRING_PROFILES_ACTIVE=dev,local
 - **EPUB 校验失败**：删除该 EPUB 后重生成，检查上传过程是否压缩/改写 ZIP。
 
 补充故障排查见 `docs/troubleshooting.zh-CN.md`，英文版见 `docs/troubleshooting.en.md`。
+
+## 发布备注
+
+- GitHub 首页展示建议直接使用根目录 `README.md` 的 Mermaid 图。
+- 发版文案模板见 `docs/release-draft.zh-CN.md`；英文对应 `docs/release-draft.en.md`。
 
 ## 隐私与发布边界
 

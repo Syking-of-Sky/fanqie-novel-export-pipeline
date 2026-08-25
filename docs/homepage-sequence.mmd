@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    participant U as Operator
+    participant P as Python exporter
+    participant J as Local Java service
+    participant C as Cache
+    participant S as Server import job
+    participant B as Bookshelf / DB
+
+    U->>P: Start export(book ID or share URL)
+    P->>J: GET /api/fqsearch/directory/{bookId}
+    J-->>P: Ordered catalog
+    loop Missing chapters only
+        P->>C: Read cached <item_id>.json
+        alt cache miss or invalid
+            P->>J: POST batch chapter request
+            J-->>P: Chapter payloads
+            P->>C: Atomic cache write
+        end
+    end
+    P->>P: Normalize + deduplicate + build TXT/EPUB
+    P->>P: Validate EPUB and emit manifest.json
+    U->>S: Upload EPUB + manifest
+    S->>B: Import by title
+    alt title already exists
+        B-->>S: Skip and remove staging copy
+    else new title
+        B-->>S: Insert record and chapters
+    end
+    S-->>U: Final title / chapter-count state

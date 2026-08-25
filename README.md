@@ -1,8 +1,86 @@
 # Fanqie Novel Export Pipeline
 
-中英双语入口：[`README.zh-CN.md`](README.zh-CN.md) · [`README.en.md`](README.en.md) · 正式流程报告：[`docs/2026-08-24_fanqie-export-pipeline-report.md`](docs/2026-08-24_fanqie-export-pipeline-report.md)
+中英双语入口：[`README.zh-CN.md`](README.zh-CN.md) · [`README.en.md`](README.en.md) · 正式流程报告：[`docs/2026-08-24_fanqie-export-pipeline-report.md`](docs/2026-08-24_fanqie-export-pipeline-report.md) · Release 草稿：[`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) / [`docs/release-draft.en.md`](docs/release-draft.en.md)
 
 这是一个可复现的“分享链接 → 目录 → 本地批量正文 → 去重 → TXT/EPUB → 校验 → manifest → 服务器幂等导入”流程。仓库只放流程代码、接口契约、配置模板和脱敏示例；小说正文、章节缓存、服务器数据库、Cookie、设备标识、注册密钥及 APK/SO 运行时资源均不入库。
+
+## Pipeline at a glance
+
+```mermaid
+flowchart LR
+  classDef src fill:#e8f1ff,stroke:#4c7ff0,color:#16325c
+  classDef proc fill:#eefbf3,stroke:#2f9e5b,color:#154b2f
+  classDef check fill:#fff6dd,stroke:#d9a404,color:#5c4500
+  classDef ship fill:#f5ecff,stroke:#8a4bdb,color:#47216e
+
+  subgraph Input[Input and resolution]
+    share[Share URL or numeric book ID]:::src
+    resolve[Resolve canonical book ID]:::proc
+  end
+
+  subgraph Fetch[Catalog and chapter fetch]
+    catalog[Local catalog API]:::proc
+    cache[Resumable per-chapter cache]:::proc
+    batch[Batch chapter request]:::proc
+    fallback{Range works?}:::check
+    ids[Fallback to chapterIds]:::proc
+  end
+
+  subgraph Build[Normalization and export]
+    clean[Normalize XHTML and text]:::proc
+    dedup[Deduplicate by item_id<br/>and verify title]:::check
+    export[Write TXT and EPUB 3]:::ship
+    verify[Validate CRC, mimetype,<br/>container, chapter count]:::check
+  end
+
+  subgraph Ship[Server import]
+    manifest[Generate manifest.json]:::ship
+    import[Idempotent import job]:::ship
+    shelf[Verify final bookshelf state]:::check
+  end
+
+  share --> resolve --> catalog --> cache --> batch --> fallback
+  fallback -- yes --> clean
+  fallback -- no --> ids --> clean
+  clean --> dedup --> export --> verify --> manifest --> import --> shelf
+```
+
+## Import handshake
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as Operator
+  participant P as Python exporter
+  participant J as Local Java service
+  participant C as Cache
+  participant S as Server import job
+  participant B as Bookshelf / DB
+
+  U->>P: Start export(book ID or share URL)
+  P->>J: GET /api/fqsearch/directory/{bookId}
+  J-->>P: Ordered catalog
+  loop Missing chapters only
+    P->>C: Read cached <item_id>.json
+    alt cache miss or invalid
+      P->>J: POST batch chapter request
+      J-->>P: Chapter payloads
+      P->>C: Atomic cache write
+    end
+  end
+  P->>P: Normalize + deduplicate + build TXT/EPUB
+  P->>P: Validate EPUB and emit manifest.json
+  U->>S: Upload EPUB + manifest
+  S->>B: Import by title
+  alt title already exists
+    B-->>S: Skip and remove staging copy
+  else new title
+    B-->>S: Insert record and chapters
+  end
+  S-->>U: Final title / chapter-count state
+```
+
+更多 Mermaid 源文件见 [`docs/homepage-flow.mmd`](docs/homepage-flow.mmd) 与 [`docs/homepage-sequence.mmd`](docs/homepage-sequence.mmd)。
 
 ## Quick start
 
@@ -24,31 +102,13 @@ python scripts/validate_epub.py outputs/<channel>/<title>/<title>.epub
 
 导入服务器时只复制 EPUB 和 `manifest.json`，使用 `scripts/upload_and_import.example.sh` 的环境变量契约；不要把真实主机、SSH 密钥或远程绝对路径写进仓库。
 
-## Data flow
-
-```mermaid
-flowchart LR
-  share[Share URL or book ID] --> catalog[Local directory API]
-  catalog --> cache[Resumable cache]
-  cache --> batch[Batch chapters: range first]
-  batch --> fallback{Range works?}
-  fallback -- no --> ids[Explicit chapterIds fallback]
-  fallback -- yes --> clean[Normalize HTML/XHTML]
-  ids --> clean
-  clean --> dedup[Deduplicate by chapter ID + title check]
-  dedup --> export[TXT + EPUB]
-  export --> validate[ZIP CRC/mimetype/chapter count]
-  validate --> manifest[manifest.json]
-  manifest --> import[Server import job]
-  import --> verify[Verify final title/chapter state]
-```
-
 ## Repository map
 
 - `scripts/`：导出、内置 EPUB writer、EPUB 校验、manifest 和上传示例。
 - `service/`：Spring Boot + Unidbg 本地签名/章节服务；运行时二进制资源需自行准备。
 - `docs/`：数据流、架构、双语故障排查和正式流程报告。
 - `examples/`：不含真实 ID/凭据的请求和 manifest 示例。
+- `docs/release-draft.*.md`：可直接复制到 GitHub Release 的中英草稿说明。
 
 ## Configuration boundary
 
@@ -77,4 +137,4 @@ rg -n -I -S 'install_id|device_id|cdid|Cookie|Bearer|Authorization|registration-
 - `empty response`：检查本地服务和运行时资源；只清理损坏批次的 cache。
 - `EPUB CRC/mimetype`：重新生成该 EPUB，确认未被传输工具改写。
 
-更多中文和英文细节见 [`README.zh-CN.md`](README.zh-CN.md) 与 [`README.en.md`](README.en.md)。
+更多中文和英文细节见 [`README.zh-CN.md`](README.zh-CN.md) 与 [`README.en.md`](README.en.md)。发版时可直接参考 [`docs/release-draft.zh-CN.md`](docs/release-draft.zh-CN.md) 或 [`docs/release-draft.en.md`](docs/release-draft.en.md)。

@@ -6,6 +6,8 @@ This repository turns a verified workflow into a reproducible toolchain: accept 
 
 The formal release report lives in `docs/2026-08-24_fanqie-export-pipeline-report.md`.
 
+For a homepage-friendly diagram view, use the Mermaid sections in `README.md`. The source files live in `docs/homepage-flow.mmd` and `docs/homepage-sequence.mmd`. For GitHub Releases, start from `docs/release-draft.en.md`.
+
 This is a **workflow repository, not a content mirror**. It intentionally excludes novels, chapter caches, server databases, cookies, device IDs, session UUIDs, registration keys, SSH details, and Unidbg APK/SO/rootfs assets.
 
 ## Prerequisites
@@ -78,6 +80,11 @@ The server contract is: keep manifest and EPUBs together; deduplicate by title; 
 - **EPUB validation failure**: regenerate the EPUB and ensure the transfer path does not rewrite the ZIP.
 
 See `docs/troubleshooting.en.md` for the expanded troubleshooting table.
+
+## Release notes
+
+- Use the Mermaid sections in the root `README.md` for the public repository landing page.
+- Reuse `docs/release-draft.en.md` for release text; the Chinese companion lives at `docs/release-draft.zh-CN.md`.
 
 ## Security and privacy
 
